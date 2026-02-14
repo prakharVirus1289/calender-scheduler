@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Task Scheduler</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .api-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .api-status.connected {
+            background: #28a745;
+        }
+
+        .api-status.disconnected {
+            background: #dc3545;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .time-blocks {
+            margin-top: 15px;
+        }
+
+        .time-block {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .time-block input {
+            flex: 1;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            padding: 8px 12px;
+            font-size: 0.9em;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #c82333;
+        }
+
+        .task-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .task-item h4 {
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9em;
+            color: #666;
+            flex-wrap: wrap;
+        }
+
+        .task-meta span {
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .schedule-output {
+            grid-column: 1 / -1;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+        }
+
+        .day-schedule {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 5px solid #28a745;
+        }
+
+        .day-schedule h3 {
+            color: #28a745;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .scheduled-task {
+            background: #f1f3f5;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 3px solid #667eea;
+        }
+
+        .scheduled-task strong {
+            color: #667eea;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            color: #856404;
+        }
+
+        .error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            color: #721c24;
+        }
+
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            color: #155724;
+        }
+
+        .button-group {
+            margin-top: 20px;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-style: italic;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        @media (max-width: 968px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            
+            .schedule-output {
+                grid-column: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗓️ Smart Task Scheduler</h1>
+            <p>Schedule your tasks based on priority, deadlines, and available time</p>
+            <div class="api-status" id="apiStatus">Checking API...</div>
+        </div>
+
+        <div class="content">
+            <!-- API Configuration -->
+            <div class="section">
+                <h2>🔧 API Configuration</h2>
+                <div class="form-group">
+                    <label>Backend API URL</label>
+                    <input type="text" id="apiUrl" value="http://localhost:5000/api" placeholder="http://localhost:5000/api">
+                </div>
+                <button class="btn btn-secondary" onclick="checkApiHealth()">Test Connection</button>
+            </div>
+
+            <!-- Time Blocks Configuration -->
+            <div class="section">
+                <h2>⏰ Daily Available Time Blocks</h2>
+                <div id="timeBlocksContainer" class="time-blocks">
+                    <div class="time-block">
+                        <input type="time" class="block-start" value="09:00">
+                        <input type="time" class="block-end" value="12:00">
+                        <button class="btn btn-danger" onclick="removeTimeBlock(this)">✕</button>
+                    </div>
+                    <div class="time-block">
+                        <input type="time" class="block-start" value="13:00">
+                        <input type="time" class="block-end" value="18:00">
+                        <button class="btn btn-danger" onclick="removeTimeBlock(this)">✕</button>
+                    </div>
+                    <div class="time-block">
+                        <input type="time" class="block-start" value="19:00">
+                        <input type="time" class="block-end" value="20:00">
+                        <button class="btn btn-danger" onclick="removeTimeBlock(this)">✕</button>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="addTimeBlock()">+ Add Time Block</button>
+
+                <div class="form-group" style="margin-top: 25px;">
+                    <label>Buffer Between Tasks (minutes)</label>
+                    <input type="number" id="bufferTime" value="15" min="0" max="60">
+                </div>
+
+                <div class="form-group">
+                    <label>Max Tasks Per Day</label>
+                    <input type="number" id="maxTasksPerDay" value="2" min="1" max="5">
+                </div>
+
+                <div class="form-group">
+                    <label>Schedule Start Date</label>
+                    <input type="date" id="startDate" value="">
+                </div>
+            </div>
+
+            <!-- Task Input -->
+            <div class="section">
+                <h2>📋 Add Tasks</h2>
+                <div class="form-group">
+                    <label>Task Name</label>
+                    <input type="text" id="taskName" placeholder="e.g., Complete Project Report">
+                </div>
+
+                <div class="form-group">
+                    <label>Days Needed to Complete</label>
+                    <input type="number" id="taskDays" min="1" value="5" placeholder="e.g., 5">
+                </div>
+
+                <div class="form-group">
+                    <label>Hours Per Day</label>
+                    <input type="number" id="taskHours" min="0.5" step="0.5" value="2" placeholder="e.g., 2">
+                </div>
+
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select id="taskPriority">
+                        <option value="1">🔴 High</option>
+                        <option value="2" selected>🟡 Medium</option>
+                        <option value="3">🟢 Low</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Deadline (days from start)</label>
+                    <input type="number" id="taskDeadline" min="1" value="10" placeholder="e.g., 10">
+                </div>
+
+                <button class="btn btn-primary" onclick="addTask()">+ Add Task</button>
+            </div>
+
+            <!-- Task List -->
+            <div class="section">
+                <h2>📝 Your Tasks</h2>
+                <div id="taskList">
+                    <div class="no-data">No tasks added yet. Add your first task!</div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="section">
+                <h2>🚀 Actions</h2>
+                <div class="button-group">
+                    <button class="btn btn-success" id="generateBtn" onclick="generateSchedule()">Generate Schedule</button>
+                    <button class="btn btn-secondary" onclick="clearAll()">Clear All</button>
+                </div>
+                <div id="actionStatus" style="margin-top: 15px;"></div>
+            </div>
+
+            <!-- Schedule Output -->
+            <div class="schedule-output">
+                <h2>📅 Generated Schedule</h2>
+                <div id="scheduleOutput">
+                    <div class="no-data">Click "Generate Schedule" to see your optimized schedule</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let tasks = [];
+        let taskIdCounter = 1;
+        let apiConnected = false;
+
+        // Set today's date as default
+        document.getElementById('startDate').valueAsDate = new Date();
+
+        // Check API health on load
+        window.addEventListener('load', () => {
+            checkApiHealth();
+        });
+
+        async function checkApiHealth() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            const statusElement = document.getElementById('apiStatus');
+            
+            statusElement.textContent = 'Checking...';
+            statusElement.className = 'api-status';
+            
+            try {
+                const response = await fetch(`${apiUrl}/health`);
+                const data = await response.json();
+                
+                if (response.ok && data.status === 'healthy') {
+                    statusElement.textContent = '✓ Connected to Backend';
+                    statusElement.className = 'api-status connected';
+                    apiConnected = true;
+                    showStatus('success', 'Successfully connected to Python backend API!');
+                } else {
+                    throw new Error('API not healthy');
+                }
+            } catch (error) {
+                statusElement.textContent = '✗ Backend Offline';
+                statusElement.className = 'api-status disconnected';
+                apiConnected = false;
+                showStatus('error', 'Cannot connect to backend. Make sure Python API is running (python api.py)');
+            }
+        }
+
+        function showStatus(type, message) {
+            const statusDiv = document.getElementById('actionStatus');
+            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        function addTimeBlock() {
+            const container = document.getElementById('timeBlocksContainer');
+            const div = document.createElement('div');
+            div.className = 'time-block';
+            div.innerHTML = `
+                <input type="time" class="block-start" value="09:00">
+                <input type="time" class="block-end" value="17:00">
+                <button class="btn btn-danger" onclick="removeTimeBlock(this)">✕</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeTimeBlock(btn) {
+            const blocks = document.querySelectorAll('.time-block');
+            if (blocks.length > 1) {
+                btn.parentElement.remove();
+            } else {
+                alert('You must have at least one time block!');
+            }
+        }
+
+        function addTask() {
+            const name = document.getElementById('taskName').value.trim();
+            const days = parseInt(document.getElementById('taskDays').value);
+            const hours = parseFloat(document.getElementById('taskHours').value);
+            const priority = parseInt(document.getElementById('taskPriority').value);
+            const deadline = parseInt(document.getElementById('taskDeadline').value);
+
+            if (!name) {
+                alert('Please enter a task name');
+                return;
+            }
+
+            const task = {
+                id: taskIdCounter++,
+                name,
+                days_needed: days,
+                hours_per_day: hours,
+                priority,
+                deadline_day: deadline
+            };
+
+            tasks.push(task);
+            renderTaskList();
+            
+            // Clear form
+            document.getElementById('taskName').value = '';
+        }
+
+        function removeTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            renderTaskList();
+        }
+
+        function renderTaskList() {
+            const container = document.getElementById('taskList');
+            
+            if (tasks.length === 0) {
+                container.innerHTML = '<div class="no-data">No tasks added yet. Add your first task!</div>';
+                return;
+            }
+
+            const priorityLabels = { 1: '🔴 High', 2: '🟡 Medium', 3: '🟢 Low' };
+
+            container.innerHTML = tasks.map(task => `
+                <div class="task-item">
+                    <h4>${task.name}</h4>
+                    <div class="task-meta">
+                        <span>📅 ${task.days_needed} days</span>
+                        <span>⏱️ ${task.hours_per_day}h/day</span>
+                        <span>${priorityLabels[task.priority]}</span>
+                        <span>⏰ Deadline: Day ${task.deadline_day}</span>
+                    </div>
+                    <button class="btn btn-danger" style="margin-top: 10px;" onclick="removeTask(${task.id})">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function getTimeBlocks() {
+            const blocks = [];
+            document.querySelectorAll('.time-block').forEach(block => {
+                const start = block.querySelector('.block-start').value;
+                const end = block.querySelector('.block-end').value;
+                
+                const [startH, startM] = start.split(':').map(Number);
+                const [endH, endM] = end.split(':').map(Number);
+                
+                if (startH * 60 + startM < endH * 60 + endM) {
+                    blocks.push({
+                        start_hour: startH,
+                        start_minute: startM,
+                        end_hour: endH,
+                        end_minute: endM
+                    });
+                }
+            });
+            
+            return blocks;
+        }
+
+        async function generateSchedule() {
+            if (!apiConnected) {
+                showStatus('error', 'Backend API is not connected. Please check the connection.');
+                return;
+            }
+
+            if (tasks.length === 0) {
+                alert('Please add at least one task');
+                return;
+            }
+
+            const generateBtn = document.getElementById('generateBtn');
+            const scheduleOutput = document.getElementById('scheduleOutput');
+            
+            // Show loading state
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+            scheduleOutput.innerHTML = '<div class="loading">Generating your schedule</div>';
+
+            const apiUrl = document.getElementById('apiUrl').value;
+            const timeBlocks = getTimeBlocks();
+            const bufferMinutes = parseInt(document.getElementById('bufferTime').value) || 15;
+            const maxTasksPerDay = parseInt(document.getElementById('maxTasksPerDay').value) || 2;
+            const startDate = document.getElementById('startDate').value;
+
+            const payload = {
+                time_blocks: timeBlocks,
+                tasks: tasks,
+                buffer_minutes: bufferMinutes,
+                max_tasks_per_day: maxTasksPerDay,
+                start_date: startDate
+            };
+
+            try {
+                const response = await fetch(`${apiUrl}/schedule`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    renderSchedule(result.schedule, result.validation_warnings, result.total_days);
+                    showStatus('success', `Schedule generated successfully! ${result.total_days} days planned.`);
+                } else {
+                    throw new Error(result.error || 'Failed to generate schedule');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                scheduleOutput.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                showStatus('error', `Failed to generate schedule: ${error.message}`);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Generate Schedule';
+            }
+        }
+
+        function renderSchedule(schedule, warnings, totalDays) {
+            const container = document.getElementById('scheduleOutput');
+            
+            let html = '';
+
+            // Show validation warnings
+            if (warnings && warnings.length > 0) {
+                html += '<div class="warning"><strong>⚠️ Validation Warnings:</strong><br>' + 
+                        warnings.join('<br>') + '</div>';
+            }
+
+            if (!schedule || schedule.length === 0) {
+                html += '<div class="error">❌ Unable to generate schedule. Please check task durations and deadlines.</div>';
+            } else {
+                const priorityLabels = { 1: '🔴 High', 2: '🟡 Medium', 3: '🟢 Low' };
+                
+                // Add summary
+                html += `<div class="success">✅ Schedule generated with ${totalDays} days</div>`;
+                
+                schedule.forEach(day => {
+                    html += `
+                        <div class="day-schedule">
+                            <h3>Day ${day.day_number} - ${day.date_formatted}</h3>
+                    `;
+                    
+                    // Show warnings for this day
+                    if (day.warnings && day.warnings.length > 0) {
+                        day.warnings.forEach(w => {
+                            html += `<div class="warning">${w}</div>`;
+                        });
+                    }
+                    
+                    // Show scheduled tasks
+                    if (day.scheduled_tasks && day.scheduled_tasks.length > 0) {
+                        day.scheduled_tasks.forEach(task => {
+                            html += `
+                                <div class="scheduled-task">
+                                    <strong>${task.start_time} - ${task.end_time}</strong> 
+                                    (${task.duration_hours}h) - ${task.task_name}
+                                    <br>
+                                    <small>${priorityLabels[task.priority]} | Progress: ${task.day_progress}</small>
+                                </div>
+                            `;
+                        });
+                    }
+                    
+                    html += `</div>`;
+                });
+            }
+
+            container.innerHTML = html;
+        }
+
+        function clearAll() {
+            if (confirm('Are you sure you want to clear all tasks and schedule?')) {
+                tasks = [];
+                renderTaskList();
+                document.getElementById('scheduleOutput').innerHTML = 
+                    '<div class="no-data">Click "Generate Schedule" to see your optimized schedule</div>';
+                showStatus('success', 'All tasks cleared');
+            }
+        }
+    </script>
+</body>
+</html>
