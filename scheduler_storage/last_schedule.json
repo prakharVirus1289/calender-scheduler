@@ -1,0 +1,102 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "name": "drinking game",
+      "total_hours": 10,
+      "hours_per_session": 2,
+      "priority": 2,
+      "deadline_day": 10,
+      "hours_completed": 0,
+      "in_progress": false
+    }
+  ],
+  "schedule": [
+    {
+      "day_number": 1,
+      "date": "2026-02-16",
+      "scheduled_tasks": [
+        {
+          "task_name": "drinking game",
+          "start_time": "00:00",
+          "end_time": "02:00",
+          "duration_hours": 2,
+          "priority": 2,
+          "progress": "2.0h / 10.0h",
+          "task_id": 1
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "day_number": 2,
+      "date": "2026-02-17",
+      "scheduled_tasks": [
+        {
+          "task_name": "drinking game",
+          "start_time": "00:00",
+          "end_time": "02:00",
+          "duration_hours": 2,
+          "priority": 2,
+          "progress": "4.0h / 10.0h",
+          "task_id": 1
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "day_number": 3,
+      "date": "2026-02-18",
+      "scheduled_tasks": [
+        {
+          "task_name": "drinking game",
+          "start_time": "00:00",
+          "end_time": "02:00",
+          "duration_hours": 2,
+          "priority": 2,
+          "progress": "6.0h / 10.0h",
+          "task_id": 1
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "day_number": 4,
+      "date": "2026-02-19",
+      "scheduled_tasks": [
+        {
+          "task_name": "drinking game",
+          "start_time": "00:00",
+          "end_time": "02:00",
+          "duration_hours": 2,
+          "priority": 2,
+          "progress": "8.0h / 10.0h",
+          "task_id": 1
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "day_number": 5,
+      "date": "2026-02-20",
+      "scheduled_tasks": [
+        {
+          "task_name": "drinking game",
+          "start_time": "00:00",
+          "end_time": "02:00",
+          "duration_hours": 2,
+          "priority": 2,
+          "progress": "10.0h / 10.0h",
+          "task_id": 1
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "config": {
+    "buffer_minutes": 15,
+    "max_tasks_per_day": 2,
+    "start_date": "2026-02-16"
+  },
+  "saved_at": "2026-02-16T00:01:36.944815"
+}

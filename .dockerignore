@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# Tests
+test_*.py
+
+# Data (will be mounted as volume)
+scheduler_storage/
+scheduler_data.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  task-scheduler:
+    build: .
+    container_name: task-scheduler
+    ports:
+      - "5000:5000"
+    volumes:
+      # Persist scheduler storage data
+      - ./scheduler_storage:/app/scheduler_storage
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=5000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - task-scheduler-network
+
+networks:
+  task-scheduler-network:
+    driver: bridge

@@ -1,12 +1,14 @@
 """
-Smart Task Scheduler - Backend Logic
-Implements intelligent task scheduling based on priority, deadlines, and time constraints
+Smart Task Scheduler - Updated Backend Logic
+Features: Closed time slots, hours-based tracking, JSON persistence
 """
 
-from datetime import datetime, timedelta
-from typing import List, Dict, Tuple, Optional
-from dataclasses import dataclass, field
+from datetime import datetime, timedelta, time
+from typing import List, Dict, Tuple, Optional, Set
+from dataclasses import dataclass, field, asdict
 from enum import IntEnum
+import json
+from pathlib import Path
 
 
 class Priority(IntEnum):
@@ -17,12 +19,15 @@ class Priority(IntEnum):
 
 
 @dataclass
-class TimeBlock:
-    """Represents an available time block in a day"""
+class ClosedTimeSlot:
+    """Represents a blocked/unavailable time slot"""
     start_hour: int
     start_minute: int
     end_hour: int
     end_minute: int
+    applies_to: str  # "all_days", "specific_date", "weekdays"
+    specific_date: Optional[str] = None  # Format: "YYYY-MM-DD"
+    weekdays: Optional[List[int]] = None  # [0=Mon, 1=Tue, ..., 6=Sun]
     
     @property
     def start_minutes(self) -> int:
@@ -34,17 +39,39 @@ class TimeBlock:
         """Total minutes from midnight for end time"""
         return self.end_hour * 60 + self.end_minute
     
+    def applies_to_date(self, date: datetime) -> bool:
+        """Check if this closed slot applies to the given date"""
+        if self.applies_to == "all_days":
+            return True
+        elif self.applies_to == "specific_date":
+            return date.strftime("%Y-%m-%d") == self.specific_date
+        elif self.applies_to == "weekdays" and self.weekdays:
+            return date.weekday() in self.weekdays
+        return False
+
+
+@dataclass
+class TimeBlock:
+    """Represents an available time block"""
+    start_hour: int
+    start_minute: int
+    end_hour: int
+    end_minute: int
+    
+    @property
+    def start_minutes(self) -> int:
+        return self.start_hour * 60 + self.start_minute
+    
+    @property
+    def end_minutes(self) -> int:
+        return self.end_hour * 60 + self.end_minute
+    
     @property
     def duration_hours(self) -> float:
-        """Duration of the block in hours"""
         return (self.end_minutes - self.start_minutes) / 60
     
-    def can_fit_task(self, hours_needed: float) -> bool:
-        """Check if this block can fit a task of given duration"""
+    def can_fit_hours(self, hours_needed: float) -> bool:
         return self.duration_hours >= hours_needed
-    
-    def __repr__(self) -> str:
-        return f"{self.start_hour:02d}:{self.start_minute:02d}-{self.end_hour:02d}:{self.end_minute:02d}"
 
 
 @dataclass
@@ -52,47 +79,62 @@ class Task:
     """Represents a task to be scheduled"""
     id: int
     name: str
-    days_needed: int
-    hours_per_day: float
+    total_hours: float  # Total hours needed to complete
+    hours_per_session: float  # Hours to work per session
     priority: Priority
-    deadline_day: int  # Deadline in days from start
-    days_completed: int = 0
+    deadline_day: int
+    hours_completed: float = 0.0
     in_progress: bool = False
     
     @property
-    def days_remaining(self) -> int:
-        """Days still needed to complete the task"""
-        return self.days_needed - self.days_completed
+    def hours_remaining(self) -> float:
+        return max(0, self.total_hours - self.hours_completed)
     
     @property
     def is_complete(self) -> bool:
-        """Check if task is fully completed"""
-        return self.days_completed >= self.days_needed
+        return self.hours_completed >= self.total_hours
+    
+    @property
+    def sessions_needed(self) -> int:
+        """Number of sessions still needed"""
+        if self.hours_per_session <= 0:
+            return 0
+        return int(self.hours_remaining / self.hours_per_session) + \
+               (1 if self.hours_remaining % self.hours_per_session > 0 else 0)
     
     def can_meet_deadline(self, current_day: int) -> bool:
-        """Check if task can still meet its deadline if started today"""
         days_until_deadline = self.deadline_day - current_day
-        return days_until_deadline >= self.days_remaining
+        return days_until_deadline >= self.sessions_needed
     
     def urgency_score(self, current_day: int) -> float:
-        """Calculate urgency score (lower is more urgent)"""
-        # Deadline pressure - days until deadline minus days remaining
-        return self.deadline_day - self.days_remaining - current_day
+        return self.deadline_day - self.sessions_needed - current_day
     
-    def __lt__(self, other: 'Task') -> bool:
-        """Comparison for sorting - more urgent/higher priority first"""
-        if self.in_progress != other.in_progress:
-            return self.in_progress  # In-progress tasks first
-        
-        # Then by urgency
-        self_urgency = self.urgency_score(0)  # Will be set properly in context
-        other_urgency = other.urgency_score(0)
-        
-        if self_urgency != other_urgency:
-            return self_urgency < other_urgency
-        
-        # Finally by priority
-        return self.priority < other.priority
+    def to_dict(self) -> dict:
+        """Convert to dictionary for JSON serialization"""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'total_hours': self.total_hours,
+            'hours_per_session': self.hours_per_session,
+            'priority': self.priority.value,
+            'deadline_day': self.deadline_day,
+            'hours_completed': self.hours_completed,
+            'in_progress': self.in_progress
+        }
+    
+    @staticmethod
+    def from_dict(data: dict) -> 'Task':
+        """Create Task from dictionary"""
+        return Task(
+            id=data['id'],
+            name=data['name'],
+            total_hours=data['total_hours'],
+            hours_per_session=data['hours_per_session'],
+            priority=Priority(data['priority']),
+            deadline_day=data['deadline_day'],
+            hours_completed=data.get('hours_completed', 0.0),
+            in_progress=data.get('in_progress', False)
+        )
 
 
 @dataclass
@@ -103,7 +145,7 @@ class ScheduledTask:
     end_time: str
     duration_hours: float
     priority: Priority
-    day_progress: str  # e.g., "3/5"
+    progress: str  # e.g., "5.5h / 10h"
     task_id: int
 
 
@@ -116,39 +158,50 @@ class DaySchedule:
     warnings: List[str] = field(default_factory=list)
     
     def add_task(self, task: ScheduledTask):
-        """Add a scheduled task to this day"""
         self.scheduled_tasks.append(task)
     
     def add_warning(self, warning: str):
-        """Add a warning message"""
         self.warnings.append(warning)
     
     @property
     def has_content(self) -> bool:
-        """Check if this day has any tasks or warnings"""
         return len(self.scheduled_tasks) > 0 or len(self.warnings) > 0
+    
+    def to_dict(self) -> dict:
+        """Convert to dictionary for JSON serialization"""
+        return {
+            'day_number': self.day_number,
+            'date': self.date.strftime('%Y-%m-%d'),
+            'scheduled_tasks': [
+                {
+                    'task_name': t.task_name,
+                    'start_time': t.start_time,
+                    'end_time': t.end_time,
+                    'duration_hours': t.duration_hours,
+                    'priority': t.priority.value,
+                    'progress': t.progress,
+                    'task_id': t.task_id
+                }
+                for t in self.scheduled_tasks
+            ],
+            'warnings': self.warnings
+        }
 
 
 @dataclass
 class AvailableBlock:
-    """Represents remaining availability in a time block for a specific day"""
+    """Represents remaining availability in a time block"""
     original_block: TimeBlock
     remaining_start_minutes: int
     remaining_duration_hours: float
     
-    def can_fit_task(self, hours_needed: float) -> bool:
-        """Check if remaining space can fit the task"""
+    def can_fit_hours(self, hours_needed: float) -> bool:
         return self.remaining_duration_hours >= hours_needed
     
     def allocate_time(self, hours_needed: float, buffer_minutes: int) -> Tuple[int, int]:
-        """
-        Allocate time for a task and return (start_minutes, end_minutes)
-        Updates remaining availability
-        """
         start_minutes = self.remaining_start_minutes
         end_minutes = start_minutes + int(hours_needed * 60)
         
-        # Update remaining availability (including buffer)
         self.remaining_start_minutes = end_minutes + buffer_minutes
         self.remaining_duration_hours -= (hours_needed + buffer_minutes / 60)
         
@@ -156,115 +209,134 @@ class AvailableBlock:
 
 
 class TaskScheduler:
-    """Main scheduler class that implements the scheduling algorithm"""
+    """Main scheduler class with closed time slots and hours-based tracking"""
     
     def __init__(
         self,
-        available_blocks: List[TimeBlock],
+        closed_slots: List[ClosedTimeSlot],
         buffer_minutes: int = 15,
         max_tasks_per_day: int = 2,
-        start_date: Optional[datetime] = None
+        start_date: Optional[datetime] = None,
+        storage_file: str = "scheduler_data.json"
     ):
-        """
-        Initialize the scheduler
-        
-        Args:
-            available_blocks: List of daily available time blocks
-            buffer_minutes: Buffer time between tasks
-            max_tasks_per_day: Maximum new tasks to start per day
-            start_date: Start date for scheduling (default: today)
-        """
-        self.available_blocks = sorted(available_blocks, key=lambda b: b.start_minutes)
+        self.closed_slots = closed_slots
         self.buffer_minutes = buffer_minutes
         self.max_tasks_per_day = max_tasks_per_day
         self.start_date = start_date or datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        self.storage_file = storage_file
     
-    def validate_tasks(self, tasks: List[Task]) -> List[str]:
-        """
-        Validate that all tasks can fit in available time blocks
+    def _get_available_blocks_for_date(self, date: datetime) -> List[TimeBlock]:
+        """Calculate available time blocks for a specific date by subtracting closed slots"""
+        # Start with full day (00:00 to 24:00)
+        available_ranges = [(0, 24 * 60)]  # List of (start_minutes, end_minutes) tuples
         
-        Returns:
-            List of warning messages for tasks that don't fit
-        """
+        # Get all closed slots that apply to this date
+        applicable_closed_slots = [
+            slot for slot in self.closed_slots
+            if slot.applies_to_date(date)
+        ]
+        
+        # Sort closed slots by start time
+        applicable_closed_slots.sort(key=lambda s: s.start_minutes)
+        
+        # Subtract each closed slot from available ranges
+        for closed_slot in applicable_closed_slots:
+            new_ranges = []
+            for start, end in available_ranges:
+                # If closed slot doesn't overlap with this range, keep the range
+                if closed_slot.end_minutes <= start or closed_slot.start_minutes >= end:
+                    new_ranges.append((start, end))
+                else:
+                    # Split the range around the closed slot
+                    if start < closed_slot.start_minutes:
+                        new_ranges.append((start, closed_slot.start_minutes))
+                    if closed_slot.end_minutes < end:
+                        new_ranges.append((closed_slot.end_minutes, end))
+            available_ranges = new_ranges
+        
+        # Convert ranges to TimeBlock objects (filter out blocks < 30 minutes)
+        blocks = []
+        for start_mins, end_mins in available_ranges:
+            if end_mins - start_mins >= 30:  # Minimum 30 minutes
+                blocks.append(TimeBlock(
+                    start_hour=start_mins // 60,
+                    start_minute=start_mins % 60,
+                    end_hour=end_mins // 60,
+                    end_minute=end_mins % 60
+                ))
+        
+        return blocks
+    
+    def validate_tasks(self, tasks: List[Task], max_days: int = 100) -> List[str]:
+        """Validate that tasks can potentially be scheduled"""
         warnings = []
-        max_block_duration = max(block.duration_hours for block in self.available_blocks)
+        
+        # Find maximum available block across all days
+        max_block_hours = 0
+        for day_offset in range(min(max_days, 30)):  # Check first 30 days
+            date = self.start_date + timedelta(days=day_offset)
+            blocks = self._get_available_blocks_for_date(date)
+            if blocks:
+                max_block_hours = max(max_block_hours, max(b.duration_hours for b in blocks))
         
         for task in tasks:
-            if task.hours_per_day > max_block_duration:
+            if task.hours_per_session > max_block_hours:
                 warnings.append(
-                    f"Task '{task.name}' requires {task.hours_per_day}h per day, "
-                    f"but longest available block is {max_block_duration}h"
+                    f"Task '{task.name}' requires {task.hours_per_session}h per session, "
+                    f"but longest available block is {max_block_hours:.1f}h"
                 )
         
         return warnings
     
-    def _create_daily_blocks(self) -> List[AvailableBlock]:
-        """Create fresh availability blocks for a new day"""
+    def _create_daily_blocks(self, date: datetime) -> List[AvailableBlock]:
+        """Create available blocks for a specific date"""
+        blocks = self._get_available_blocks_for_date(date)
         return [
             AvailableBlock(
                 original_block=block,
                 remaining_start_minutes=block.start_minutes,
                 remaining_duration_hours=block.duration_hours
             )
-            for block in self.available_blocks
+            for block in blocks
         ]
     
     def _sort_tasks_by_urgency(self, tasks: List[Task], current_day: int) -> List[Task]:
-        """
-        Sort tasks by urgency and priority
-        
-        Priority order:
-        1. In-progress tasks (must continue)
-        2. Tasks by urgency score (deadline pressure)
-        3. Tasks by priority level
-        """
-        def sort_key(task: Task) -> Tuple[bool, float, int]:
+        """Sort tasks by: in_progress > urgency > priority"""
+        def sort_key(task: Task) -> Tuple[bool, bool, float, int]:
             return (
-                not task.in_progress,  # False (in-progress) comes first
-                task.urgency_score(current_day),  # Lower urgency score = more urgent
-                task.priority.value  # Lower priority value = higher priority
+                task.is_complete,  # Completed tasks last
+                not task.in_progress,  # In-progress tasks first
+                task.urgency_score(current_day),
+                task.priority.value
             )
-        
         return sorted(tasks, key=sort_key)
     
     def _minutes_to_time_string(self, minutes: int) -> str:
-        """Convert minutes from midnight to HH:MM format"""
         hours = minutes // 60
         mins = minutes % 60
         return f"{hours:02d}:{mins:02d}"
     
     def schedule_tasks(self, tasks: List[Task], max_days: Optional[int] = None) -> Tuple[List[DaySchedule], List[str]]:
-        """
-        Generate the complete schedule for all tasks
-        
-        Args:
-            tasks: List of tasks to schedule
-            max_days: Maximum days to schedule (default: max deadline + 10)
-        
-        Returns:
-            Tuple of (list of day schedules, list of validation warnings)
-        """
-        # Validate tasks first
+        """Generate schedule using hours-based tracking"""
         validation_warnings = self.validate_tasks(tasks)
         
         if not tasks:
             return [], validation_warnings
         
-        # Determine scheduling horizon
         if max_days is None:
             max_days = max(task.deadline_day for task in tasks) + 10
         
-        # Create working copy of tasks
+        # Create working copy
         working_tasks = [
             Task(
                 id=task.id,
                 name=task.name,
-                days_needed=task.days_needed,
-                hours_per_day=task.hours_per_day,
+                total_hours=task.total_hours,
+                hours_per_session=task.hours_per_session,
                 priority=task.priority,
                 deadline_day=task.deadline_day,
-                days_completed=0,
-                in_progress=False
+                hours_completed=task.hours_completed,
+                in_progress=task.in_progress
             )
             for task in tasks
         ]
@@ -272,91 +344,107 @@ class TaskScheduler:
         schedule = []
         current_day = 0
         
-        # Main scheduling loop
         while any(not task.is_complete for task in working_tasks) and current_day < max_days:
             current_day += 1
-            
-            # Create day schedule
             day_date = self.start_date + timedelta(days=current_day - 1)
             day_schedule = DaySchedule(day_number=current_day, date=day_date)
             
-            # Get incomplete tasks sorted by urgency
             incomplete_tasks = [t for t in working_tasks if not t.is_complete]
             sorted_tasks = self._sort_tasks_by_urgency(incomplete_tasks, current_day)
             
-            # Create fresh blocks for this day
-            daily_blocks = self._create_daily_blocks()
+            daily_blocks = self._create_daily_blocks(day_date)
             
-            # Track tasks scheduled today
+            if not daily_blocks:
+                # No available time on this day
+                continue
+            
             new_tasks_started_today = 0
             
-            # Schedule tasks
             for task in sorted_tasks:
-                # Check task limit (don't count continuing tasks)
                 if not task.in_progress and new_tasks_started_today >= self.max_tasks_per_day:
                     break
                 
-                # Check if task can meet deadline
                 if not task.in_progress and not task.can_meet_deadline(current_day):
                     day_schedule.add_warning(
-                        f"Cannot start '{task.name}' - needs {task.days_remaining} days "
+                        f"Cannot start '{task.name}' - needs {task.sessions_needed} more sessions "
                         f"but deadline is in {task.deadline_day - current_day} days"
                     )
                     continue
                 
                 # Find suitable block
                 suitable_block = next(
-                    (block for block in daily_blocks if block.can_fit_task(task.hours_per_day)),
+                    (block for block in daily_blocks if block.can_fit_hours(task.hours_per_session)),
                     None
                 )
                 
                 if suitable_block:
-                    # Allocate time
                     start_minutes, end_minutes = suitable_block.allocate_time(
-                        task.hours_per_day,
+                        task.hours_per_session,
                         self.buffer_minutes
                     )
                     
-                    # Create scheduled task
+                    # Update task progress
+                    was_in_progress = task.in_progress
+                    task.hours_completed += task.hours_per_session
+                    task.hours_completed = min(task.hours_completed, task.total_hours)  # Cap at total
+                    task.in_progress = True
+                    
                     scheduled_task = ScheduledTask(
                         task_name=task.name,
                         start_time=self._minutes_to_time_string(start_minutes),
                         end_time=self._minutes_to_time_string(end_minutes),
-                        duration_hours=task.hours_per_day,
+                        duration_hours=task.hours_per_session,
                         priority=task.priority,
-                        day_progress=f"{task.days_completed + 1}/{task.days_needed}",
+                        progress=f"{task.hours_completed:.1f}h / {task.total_hours:.1f}h",
                         task_id=task.id
                     )
                     
                     day_schedule.add_task(scheduled_task)
                     
-                    # Update task progress
-                    was_in_progress = task.in_progress
-                    task.days_completed += 1
-                    task.in_progress = True
-                    
                     if task.is_complete:
                         task.in_progress = False
                     
-                    # Count new task starts
                     if not was_in_progress:
                         new_tasks_started_today += 1
-                
                 else:
-                    # No suitable block found
                     if task.in_progress:
                         day_schedule.add_warning(
-                            f"Cannot continue '{task.name}' - no available {task.hours_per_day}h block"
+                            f"Cannot continue '{task.name}' - no available {task.hours_per_session}h block"
                         )
             
-            # Add day to schedule if it has content
             if day_schedule.has_content:
                 schedule.append(day_schedule)
         
         return schedule, validation_warnings
     
+    def save_data(self, tasks: List[Task], schedule: List[DaySchedule]):
+        """Save tasks and schedule to JSON file"""
+        data = {
+            'tasks': [task.to_dict() for task in tasks],
+            'schedule': [day.to_dict() for day in schedule],
+            'config': {
+                'buffer_minutes': self.buffer_minutes,
+                'max_tasks_per_day': self.max_tasks_per_day,
+                'start_date': self.start_date.strftime('%Y-%m-%d')
+            },
+            'saved_at': datetime.now().isoformat()
+        }
+        
+        with open(self.storage_file, 'w') as f:
+            json.dump(data, f, indent=2)
+    
+    def load_data(self) -> Optional[Dict]:
+        """Load tasks and schedule from JSON file"""
+        try:
+            if Path(self.storage_file).exists():
+                with open(self.storage_file, 'r') as f:
+                    return json.load(f)
+        except Exception as e:
+            print(f"Error loading data: {e}")
+        return None
+    
     def print_schedule(self, schedule: List[DaySchedule], warnings: List[str] = None):
-        """Print the schedule in a readable format"""
+        """Print schedule in readable format"""
         priority_symbols = {
             Priority.HIGH: "🔴 High",
             Priority.MEDIUM: "🟡 Medium",
@@ -388,65 +476,60 @@ class TaskScheduler:
                     priority_label = priority_symbols.get(task.priority, "Unknown")
                     print(f"   {task.start_time} - {task.end_time} ({task.duration_hours}h)")
                     print(f"   📋 {task.task_name}")
-                    print(f"   {priority_label} | Progress: {task.day_progress}")
+                    print(f"   {priority_label} | Progress: {task.progress}")
                     print()
-            
-            if not day.scheduled_tasks and not day.warnings:
-                print("   (No tasks scheduled)")
-                print()
             
             print()
 
 
 def example_usage():
-    """Example demonstrating how to use the scheduler"""
+    """Example with closed time slots and hours-based tracking"""
     
-    # Define available time blocks (9-12, 1-6, 7-8)
-    time_blocks = [
-        TimeBlock(9, 0, 12, 0),   # 9 AM - 12 PM (3 hours)
-        TimeBlock(13, 0, 18, 0),  # 1 PM - 6 PM (5 hours)
-        TimeBlock(19, 0, 20, 0),  # 7 PM - 8 PM (1 hour)
+    # Define CLOSED time slots (blocked/unavailable times)
+    closed_slots = [
+        # Sleep - applies to all days
+        ClosedTimeSlot(0, 0, 8, 0, "all_days"),  # 12 AM - 8 AM
+        ClosedTimeSlot(22, 0, 24, 0, "all_days"),  # 10 PM - 12 AM
+        
+        # Meals - all days
+        ClosedTimeSlot(12, 0, 13, 0, "all_days"),  # Lunch
+        ClosedTimeSlot(20, 0, 21, 0, "all_days"),  # Dinner
+        
+        # Weekend mornings - sleep in
+        ClosedTimeSlot(8, 0, 10, 0, "weekdays", weekdays=[5, 6]),  # Sat, Sun
     ]
     
-    # Create tasks
+    # Create tasks with hours-based tracking
     tasks = [
         Task(
             id=1,
             name="Complete Project Report",
-            days_needed=5,
-            hours_per_day=2.0,
+            total_hours=10.0,  # 10 hours total
+            hours_per_session=2.0,  # 2 hours per day
             priority=Priority.HIGH,
             deadline_day=10
         ),
         Task(
             id=2,
             name="Study for Exam",
-            days_needed=3,
-            hours_per_day=3.0,
+            total_hours=9.0,  # 9 hours total
+            hours_per_session=3.0,  # 3 hours per day
             priority=Priority.HIGH,
             deadline_day=7
         ),
         Task(
             id=3,
             name="Code Review Tasks",
-            days_needed=4,
-            hours_per_day=1.5,
+            total_hours=6.0,  # 6 hours total
+            hours_per_session=1.5,  # 1.5 hours per day
             priority=Priority.MEDIUM,
             deadline_day=12
-        ),
-        Task(
-            id=4,
-            name="Read Research Papers",
-            days_needed=6,
-            hours_per_day=1.0,
-            priority=Priority.LOW,
-            deadline_day=15
         ),
     ]
     
     # Create scheduler
     scheduler = TaskScheduler(
-        available_blocks=time_blocks,
+        closed_slots=closed_slots,
         buffer_minutes=15,
         max_tasks_per_day=2,
         start_date=datetime(2024, 2, 15)
@@ -458,14 +541,15 @@ def example_usage():
     # Print the schedule
     scheduler.print_schedule(schedule, warnings)
     
-    # Return for potential further processing
+    # Save to file
+    scheduler.save_data(tasks, schedule)
+    print(f"\n✅ Schedule saved to {scheduler.storage_file}")
+    
     return schedule, warnings
 
 
 if __name__ == "__main__":
-    # Run example
     schedule, warnings = example_usage()
-    
     print("\n" + "=" * 80)
     print(f"✅ Schedule generated with {len(schedule)} days")
     print("=" * 80)

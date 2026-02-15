@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Task Scheduler  </title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .header .version {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+            margin-top: 10px;
+        }
+
+        .api-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .api-status.connected {
+            background: #28a745;
+        }
+
+        .api-status.disconnected {
+            background: #dc3545;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 8px;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        .radio-group input[type="radio"] {
+            width: auto;
+            margin-right: 5px;
+        }
+
+        .closed-slots {
+            margin-top: 15px;
+        }
+
+        .closed-slot {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #dc3545;
+        }
+
+        .closed-slot-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .closed-slot-times {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .closed-slot-times input {
+            flex: 1;
+        }
+
+        .weekday-selector {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .weekday-btn {
+            padding: 6px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .weekday-btn.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            padding: 8px 12px;
+            font-size: 0.9em;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #c82333;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover:not(:disabled) {
+            background: #138496;
+        }
+
+        .task-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .task-item h4 {
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9em;
+            color: #666;
+            flex-wrap: wrap;
+        }
+
+        .task-meta span {
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .schedule-output {
+            grid-column: 1 / -1;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+        }
+
+        .day-schedule {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 5px solid #28a745;
+        }
+
+        .day-schedule h3 {
+            color: #28a745;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .scheduled-task {
+            background: #f1f3f5;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 3px solid #667eea;
+        }
+
+        .scheduled-task strong {
+            color: #667eea;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            color: #856404;
+        }
+
+        .error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            color: #721c24;
+        }
+
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            color: #155724;
+        }
+
+        .info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            color: #0c5460;
+        }
+
+        .button-group {
+            margin-top: 20px;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-style: italic;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 968px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            
+            .schedule-output {
+                grid-column: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗓️ Smart Task Scheduler</h1>
+            <div class="version">Version 2.0 - Hours-Based Tracking</div>
+            <p>Schedule with closed time slots and precise hour tracking</p>
+            <div class="api-status" id="apiStatus">Checking API...</div>
+        </div>
+
+        <div class="content">
+            <!-- API Configuration -->
+            <div class="section">
+                <h2>🔧 Configuration</h2>
+                <small style="color: #666; display: block; margin-bottom: 15px;">
+                    ☁️ All changes auto-save to backend API (browser backup as fallback)
+                </small>
+                <div class="form-group">
+                    <label>Backend API URL</label>
+                    <input type="text" id="apiUrl" value="http://localhost:5000/api" placeholder="http://localhost:5000/api">
+                </div>
+                <button class="btn btn-secondary" onclick="checkApiHealth()">Test Connection</button>
+                
+                <div class="form-group" style="margin-top: 25px;">
+                    <label>Buffer Between Tasks (minutes)</label>
+                    <input type="number" id="bufferTime" value="15" min="0" max="60">
+                </div>
+
+                <div class="form-group">
+                    <label>Max Tasks Per Day</label>
+                    <input type="number" id="maxTasksPerDay" value="2" min="1" max="5">
+                </div>
+
+                <div class="form-group">
+                    <label>Schedule Start Date</label>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="dateOption" value="now" checked onchange="toggleCustomDate()"> Current Time
+                        </label>
+                        <label>
+                            <input type="radio" name="dateOption" value="custom" onchange="toggleCustomDate()"> Custom Date
+                        </label>
+                    </div>
+                    <input type="date" id="startDate" class="hidden" value="">
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-info" onclick="saveData()">☁️ Save to Backend</button>
+                    <button class="btn btn-info" onclick="loadData()">☁️ Reload from Backend</button>
+                </div>
+                <small style="color: #666; display: block; margin-top: 10px;">
+                    Auto-saves on every change. Manual save/reload for verification.
+                </small>
+            </div>
+
+            <!-- Closed Time Slots -->
+            <div class="section">
+                <h2>🚫 Closed Time Slots (Unavailable Times)</h2>
+                <small style="color: #666; display: block; margin-bottom: 15px;">
+                    ☁️ Changes auto-save to backend API immediately
+                </small>
+                <div id="closedSlotsContainer" class="closed-slots">
+                    <!-- Closed slots will be added here -->
+                </div>
+                <button class="btn btn-secondary" onclick="addClosedSlot()">+ Add Closed Slot</button>
+            </div>
+
+            <!-- Task Input -->
+            <div class="section">
+                <h2>📋 Add Tasks</h2>
+                <small style="color: #666; display: block; margin-bottom: 15px;">
+                    ☁️ Tasks auto-save to backend API when added/removed
+                </small>
+                <div class="form-group">
+                    <label>Task Name</label>
+                    <input type="text" id="taskName" placeholder="e.g., Complete Project Report">
+                </div>
+
+                <div class="form-group">
+                    <label>Total Hours Needed</label>
+                    <input type="number" id="taskTotalHours" min="0.5" step="0.5" value="10" placeholder="e.g., 10">
+                    <small style="color: #666;">Total hours to complete the task</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Hours Per Session</label>
+                    <input type="number" id="taskHoursPerSession" min="0.5" step="0.5" value="2" placeholder="e.g., 2">
+                    <small style="color: #666;">Hours to work on this task each day</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select id="taskPriority">
+                        <option value="1">🔴 High</option>
+                        <option value="2" selected>🟡 Medium</option>
+                        <option value="3">🟢 Low</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Deadline (days from start)</label>
+                    <input type="number" id="taskDeadline" min="1" value="10" placeholder="e.g., 10">
+                </div>
+
+                <button class="btn btn-primary" onclick="addTask()">+ Add Task</button>
+            </div>
+
+            <!-- Task List -->
+            <div class="section">
+                <h2>📝 Your Tasks</h2>
+                <div id="taskList">
+                    <div class="no-data">No tasks added yet. Add your first task!</div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="section">
+                <h2>🚀 Actions</h2>
+                <div class="button-group">
+                    <button class="btn btn-success" id="generateBtn" onclick="generateSchedule()">Generate Schedule</button>
+                    <button class="btn btn-secondary" onclick="clearAll()">Clear All</button>
+                </div>
+                <div id="actionStatus" style="margin-top: 15px;"></div>
+            </div>
+
+            <!-- Schedule Output -->
+            <div class="schedule-output">
+                <h2>📅 Generated Schedule</h2>
+                <div id="scheduleOutput">
+                    <div class="no-data">Click "Generate Schedule" to see your optimized schedule</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let tasks = [];
+        let closedSlots = [];
+        let taskIdCounter = 1;
+        let closedSlotIdCounter = 1;
+        let apiConnected = false;
+
+        // Set today's date as default
+        document.getElementById('startDate').valueAsDate = new Date();
+
+        // Initialize with default closed slots
+        window.addEventListener('load', () => {
+            addDefaultClosedSlots();
+            checkApiHealth();
+            // Load from API first, fallback to localStorage
+            loadDataOnStartup();
+        });
+
+        function addDefaultClosedSlots() {
+            // Sleep
+            addClosedSlotWithData(0, 0, 8, 0, 'all_days');
+            addClosedSlotWithData(22, 0, 24, 0, 'all_days');
+            // Lunch
+            addClosedSlotWithData(12, 0, 13, 0, 'all_days');
+            // Dinner
+            addClosedSlotWithData(20, 0, 21, 0, 'all_days');
+        }
+
+        function toggleCustomDate() {
+            const dateInput = document.getElementById('startDate');
+            const customSelected = document.querySelector('input[name="dateOption"]:checked').value === 'custom';
+            dateInput.classList.toggle('hidden', !customSelected);
+        }
+
+        async function checkApiHealth() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            const statusElement = document.getElementById('apiStatus');
+            
+            statusElement.textContent = 'Checking...';
+            statusElement.className = 'api-status';
+            
+            try {
+                const response = await fetch(`${apiUrl}/health`);
+                const data = await response.json();
+                
+                if (response.ok && data.status === 'healthy') {
+                    statusElement.textContent = '✓ Connected ( )';
+                    statusElement.className = 'api-status connected';
+                    apiConnected = true;
+                    showStatus('success', 'Connected to Python backend  !');
+                } else {
+                    throw new Error('API not healthy');
+                }
+            } catch (error) {
+                statusElement.textContent = '✗ Backend Offline';
+                statusElement.className = 'api-status disconnected';
+                apiConnected = false;
+                showStatus('error', 'Cannot connect to backend. Run: python api.py');
+            }
+        }
+
+        function showStatus(type, message) {
+            const statusDiv = document.getElementById('actionStatus');
+            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        function addClosedSlot() {
+            addClosedSlotWithData(9, 0, 10, 0, 'all_days');
+        }
+
+        function addClosedSlotWithData(startH, startM, endH, endM, appliesTo, specificDate = null, weekdays = []) {
+            const id = closedSlotIdCounter++;
+            const slot = {
+                id,
+                start_hour: startH,
+                start_minute: startM,
+                end_hour: endH,
+                end_minute: endM,
+                applies_to: appliesTo,
+                specific_date: specificDate,
+                weekdays: weekdays
+            };
+            
+            closedSlots.push(slot);
+            renderClosedSlots();
+            saveToAPI(); // Auto-save to API
+        }
+
+        function renderClosedSlots() {
+            const container = document.getElementById('closedSlotsContainer');
+            
+            if (closedSlots.length === 0) {
+                container.innerHTML = '<div class="no-data">No closed slots. All time is available.</div>';
+                return;
+            }
+
+            container.innerHTML = closedSlots.map(slot => {
+                const weekdayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                
+                return `
+                    <div class="closed-slot">
+                        <div class="closed-slot-header">
+                            <strong>Closed Time Slot</strong>
+                            <button class="btn btn-danger" onclick="removeClosedSlot(${slot.id})">✕</button>
+                        </div>
+                        <div class="closed-slot-times">
+                            <input type="time" value="${String(slot.start_hour).padStart(2,'0')}:${String(slot.start_minute).padStart(2,'0')}" 
+                                   onchange="updateClosedSlot(${slot.id}, 'start', this.value)">
+                            <input type="time" value="${String(slot.end_hour).padStart(2,'0')}:${String(slot.end_minute).padStart(2,'0')}" 
+                                   onchange="updateClosedSlot(${slot.id}, 'end', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label>Applies To:</label>
+                            <select onchange="updateClosedSlot(${slot.id}, 'applies_to', this.value)">
+                                <option value="all_days" ${slot.applies_to === 'all_days' ? 'selected' : ''}>All Days</option>
+                                <option value="weekdays" ${slot.applies_to === 'weekdays' ? 'selected' : ''}>Specific Weekdays</option>
+                                <option value="specific_date" ${slot.applies_to === 'specific_date' ? 'selected' : ''}>Specific Date</option>
+                            </select>
+                        </div>
+                        ${slot.applies_to === 'weekdays' ? `
+                            <div class="weekday-selector">
+                                ${weekdayNames.map((day, idx) => `
+                                    <button class="weekday-btn ${slot.weekdays.includes(idx) ? 'selected' : ''}" 
+                                            onclick="toggleWeekday(${slot.id}, ${idx})">${day}</button>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                        ${slot.applies_to === 'specific_date' ? `
+                            <input type="date" value="${slot.specific_date || ''}" 
+                                   onchange="updateClosedSlot(${slot.id}, 'specific_date', this.value)">
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateClosedSlot(id, field, value) {
+            const slot = closedSlots.find(s => s.id === id);
+            if (!slot) return;
+
+            if (field === 'start') {
+                const [h, m] = value.split(':').map(Number);
+                slot.start_hour = h;
+                slot.start_minute = m;
+            } else if (field === 'end') {
+                const [h, m] = value.split(':').map(Number);
+                slot.end_hour = h;
+                slot.end_minute = m;
+            } else if (field === 'applies_to') {
+                slot.applies_to = value;
+                if (value === 'weekdays' && !slot.weekdays) {
+                    slot.weekdays = [];
+                }
+                if (value === 'specific_date' && !slot.specific_date) {
+                    slot.specific_date = new Date().toISOString().split('T')[0];
+                }
+                renderClosedSlots();
+            } else if (field === 'specific_date') {
+                slot.specific_date = value;
+            }
+            
+            saveToAPI(); // Auto-save to API
+        }
+
+        function toggleWeekday(slotId, weekdayIdx) {
+            const slot = closedSlots.find(s => s.id === slotId);
+            if (!slot || !slot.weekdays) return;
+
+            const idx = slot.weekdays.indexOf(weekdayIdx);
+            if (idx > -1) {
+                slot.weekdays.splice(idx, 1);
+            } else {
+                slot.weekdays.push(weekdayIdx);
+            }
+            renderClosedSlots();
+            saveToAPI(); // Auto-save to API
+        }
+
+        function removeClosedSlot(id) {
+            closedSlots = closedSlots.filter(s => s.id !== id);
+            renderClosedSlots();
+            saveToAPI(); // Auto-save to API
+        }
+
+        function addTask() {
+            const name = document.getElementById('taskName').value.trim();
+            const totalHours = parseFloat(document.getElementById('taskTotalHours').value);
+            const hoursPerSession = parseFloat(document.getElementById('taskHoursPerSession').value);
+            const priority = parseInt(document.getElementById('taskPriority').value);
+            const deadline = parseInt(document.getElementById('taskDeadline').value);
+
+            if (!name) {
+                alert('Please enter a task name');
+                return;
+            }
+
+            if (hoursPerSession > totalHours) {
+                alert('Hours per session cannot be greater than total hours');
+                return;
+            }
+
+            const task = {
+                id: taskIdCounter++,
+                name,
+                total_hours: totalHours,
+                hours_per_session: hoursPerSession,
+                priority,
+                deadline_day: deadline,
+                hours_completed: 0,
+                in_progress: false
+            };
+
+            tasks.push(task);
+            renderTaskList();
+            
+            // Clear form
+            document.getElementById('taskName').value = '';
+            
+            // Auto-save to API
+            saveToAPI();
+        }
+
+        function removeTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            renderTaskList();
+            saveToAPI(); // Auto-save to API
+        }
+
+        function renderTaskList() {
+            const container = document.getElementById('taskList');
+            
+            if (tasks.length === 0) {
+                container.innerHTML = '<div class="no-data">No tasks added yet. Add your first task!</div>';
+                return;
+            }
+
+            const priorityLabels = { 1: '🔴 High', 2: '🟡 Medium', 3: '🟢 Low' };
+
+            container.innerHTML = tasks.map(task => {
+                const sessions = Math.ceil(task.total_hours / task.hours_per_session);
+                return `
+                    <div class="task-item">
+                        <h4>${task.name}</h4>
+                        <div class="task-meta">
+                            <span>⏱️ ${task.total_hours}h total</span>
+                            <span>📅 ${task.hours_per_session}h/session</span>
+                            <span>🔢 ~${sessions} sessions</span>
+                            <span>${priorityLabels[task.priority]}</span>
+                            <span>⏰ Deadline: Day ${task.deadline_day}</span>
+                        </div>
+                        <button class="btn btn-danger" style="margin-top: 10px;" onclick="removeTask(${task.id})">Remove</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getClosedSlotsForAPI() {
+            return closedSlots.map(slot => ({
+                start_hour: slot.start_hour,
+                start_minute: slot.start_minute,
+                end_hour: slot.end_hour,
+                end_minute: slot.end_minute,
+                applies_to: slot.applies_to,
+                specific_date: slot.specific_date,
+                weekdays: slot.weekdays
+            }));
+        }
+
+        async function generateSchedule() {
+            if (!apiConnected) {
+                showStatus('error', 'Backend API is not connected. Please check the connection.');
+                return;
+            }
+
+            if (tasks.length === 0) {
+                alert('Please add at least one task');
+                return;
+            }
+
+            const generateBtn = document.getElementById('generateBtn');
+            const scheduleOutput = document.getElementById('scheduleOutput');
+            
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+            scheduleOutput.innerHTML = '<div class="loading">Generating your schedule</div>';
+
+            const apiUrl = document.getElementById('apiUrl').value;
+            const closedSlotsAPI = getClosedSlotsForAPI();
+            const bufferMinutes = parseInt(document.getElementById('bufferTime').value) || 15;
+            const maxTasksPerDay = parseInt(document.getElementById('maxTasksPerDay').value) || 2;
+            
+            const dateOption = document.querySelector('input[name="dateOption"]:checked').value;
+            const startDate = dateOption === 'now' ? 'now' : document.getElementById('startDate').value;
+
+            const payload = {
+                closed_slots: closedSlotsAPI,
+                tasks: tasks,
+                buffer_minutes: bufferMinutes,
+                max_tasks_per_day: maxTasksPerDay,
+                start_date: startDate
+            };
+
+            try {
+                const response = await fetch(`${apiUrl}/schedule`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    renderSchedule(result.schedule, result.validation_warnings, result.total_days);
+                    showStatus('success', `Schedule generated! ${result.total_days} days planned. Saved to: ${result.saved_to}`);
+                } else {
+                    throw new Error(result.error || 'Failed to generate schedule');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                scheduleOutput.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                showStatus('error', `Failed: ${error.message}`);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Generate Schedule';
+            }
+        }
+
+        function renderSchedule(schedule, warnings, totalDays) {
+            const container = document.getElementById('scheduleOutput');
+            
+            let html = '';
+
+            if (warnings && warnings.length > 0) {
+                html += '<div class="warning"><strong>⚠️ Validation Warnings:</strong><br>' + 
+                        warnings.join('<br>') + '</div>';
+            }
+
+            if (!schedule || schedule.length === 0) {
+                html += '<div class="error">❌ Unable to generate schedule.</div>';
+            } else {
+                const priorityLabels = { 1: '🔴 High', 2: '🟡 Medium', 3: '🟢 Low' };
+                
+                html += `<div class="success">✅ Schedule generated with ${totalDays} days</div>`;
+                
+                schedule.forEach(day => {
+                    html += `
+                        <div class="day-schedule">
+                            <h3>Day ${day.day_number} - ${day.date_formatted}</h3>
+                    `;
+                    
+                    if (day.warnings && day.warnings.length > 0) {
+                        day.warnings.forEach(w => {
+                            html += `<div class="warning">${w}</div>`;
+                        });
+                    }
+                    
+                    if (day.scheduled_tasks && day.scheduled_tasks.length > 0) {
+                        day.scheduled_tasks.forEach(task => {
+                            html += `
+                                <div class="scheduled-task">
+                                    <strong>${task.start_time} - ${task.end_time}</strong> 
+                                    (${task.duration_hours}h) - ${task.task_name}
+                                    <br>
+                                    <small>${priorityLabels[task.priority]} | Progress: ${task.progress}</small>
+                                </div>
+                            `;
+                        });
+                    }
+                    
+                    html += `</div>`;
+                });
+            }
+
+            container.innerHTML = html;
+        }
+
+        async function saveToAPI() {
+            if (!apiConnected) {
+                // If API not available, save to localStorage as fallback
+                saveToLocalStorageBackup();
+                return;
+            }
+
+            const apiUrl = document.getElementById('apiUrl').value;
+            
+            const dataToSave = {
+                tasks: tasks,
+                closed_slots: getClosedSlotsForAPI(),
+                taskIdCounter: taskIdCounter,
+                closedSlotIdCounter: closedSlotIdCounter,
+                config: {
+                    buffer_minutes: parseInt(document.getElementById('bufferTime').value) || 15,
+                    max_tasks_per_day: parseInt(document.getElementById('maxTasksPerDay').value) || 2,
+                    date_option: document.querySelector('input[name="dateOption"]:checked').value,
+                    start_date: document.getElementById('startDate').value,
+                    api_url: document.getElementById('apiUrl').value
+                },
+                saved_at: new Date().toISOString()
+            };
+            
+            try {
+                const response = await fetch(`${apiUrl}/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dataToSave)
+                });
+                
+                if (response.ok) {
+                    // Success - also save to localStorage as backup
+                    saveToLocalStorageBackup();
+                    return true;
+                } else {
+                    console.error('API save failed, using localStorage');
+                    saveToLocalStorageBackup();
+                    return false;
+                }
+            } catch (e) {
+                console.error('API save error:', e);
+                saveToLocalStorageBackup();
+                return false;
+            }
+        }
+
+        function saveToLocalStorageBackup() {
+            // Keep localStorage as backup only
+            const data = {
+                tasks,
+                closedSlots,
+                taskIdCounter,
+                closedSlotIdCounter,
+                config: {
+                    bufferTime: document.getElementById('bufferTime').value,
+                    maxTasksPerDay: document.getElementById('maxTasksPerDay').value,
+                    dateOption: document.querySelector('input[name="dateOption"]:checked').value,
+                    startDate: document.getElementById('startDate').value,
+                    apiUrl: document.getElementById('apiUrl').value
+                },
+                saved_at: new Date().toISOString()
+            };
+            localStorage.setItem('taskSchedulerData', JSON.stringify(data));
+        }
+
+        async function loadDataOnStartup() {
+            showStatus('info', '☁️ Loading data from backend...');
+            
+            // Try to load from API first
+            if (apiConnected) {
+                const loaded = await loadFromAPI(true); // true = silent mode
+                if (loaded) {
+                    showStatus('success', '✅ Data loaded from backend API');
+                    return; // Successfully loaded from API
+                }
+            }
+            
+            // Fallback to localStorage if API not available
+            loadFromLocalStorageBackup();
+        }
+
+        async function loadFromAPI(silent = false) {
+            try {
+                const apiUrl = document.getElementById('apiUrl').value;
+                const response = await fetch(`${apiUrl}/load`);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    const data = result.data;
+                    
+                    // Load tasks
+                    tasks = data.tasks || [];
+                    
+                    // Load closed slots
+                    if (data.closed_slots) {
+                        closedSlots = data.closed_slots.map(slot => ({
+                            id: closedSlotIdCounter++,
+                            start_hour: slot.start_hour,
+                            start_minute: slot.start_minute,
+                            end_hour: slot.end_hour,
+                            end_minute: slot.end_minute,
+                            applies_to: slot.applies_to,
+                            specific_date: slot.specific_date,
+                            weekdays: slot.weekdays
+                        }));
+                    } else {
+                        closedSlots = [];
+                    }
+                    
+                    // Load counters
+                    taskIdCounter = data.taskIdCounter || (Math.max(...tasks.map(t => t.id), 0) + 1);
+                    closedSlotIdCounter = data.closedSlotIdCounter || (Math.max(...closedSlots.map(s => s.id), 0) + 1);
+                    
+                    // Load configuration
+                    if (data.config) {
+                        if (data.config.buffer_minutes !== undefined) {
+                            document.getElementById('bufferTime').value = data.config.buffer_minutes;
+                        }
+                        if (data.config.max_tasks_per_day !== undefined) {
+                            document.getElementById('maxTasksPerDay').value = data.config.max_tasks_per_day;
+                        }
+                        if (data.config.api_url) {
+                            document.getElementById('apiUrl').value = data.config.api_url;
+                        }
+                        if (data.config.date_option) {
+                            const radioBtn = document.querySelector(`input[name="dateOption"][value="${data.config.date_option}"]`);
+                            if (radioBtn) {
+                                radioBtn.checked = true;
+                                toggleCustomDate();
+                            }
+                        }
+                        if (data.config.start_date) {
+                            document.getElementById('startDate').value = data.config.start_date;
+                        }
+                    }
+                    
+                    // Render everything
+                    renderTaskList();
+                    renderClosedSlots();
+                    
+                    if (!silent) {
+                        const savedAt = data.saved_at ? new Date(data.saved_at).toLocaleString() : 'unknown time';
+                        const statsMsg = `${tasks.length} tasks, ${closedSlots.length} closed slots (saved ${savedAt})`;
+                        showStatus('success', `✅ Loaded from API!\n📊 ${statsMsg}`);
+                    }
+                    
+                    // Also save to localStorage as backup
+                    saveToLocalStorageBackup();
+                    return true;
+                } else {
+                    return false;
+                }
+            } catch (e) {
+                console.error('API load failed:', e);
+                return false;
+            }
+        }
+
+        function loadFromLocalStorageBackup() {
+            const saved = localStorage.getItem('taskSchedulerData');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    tasks = data.tasks || [];
+                    closedSlots = data.closedSlots || [];
+                    taskIdCounter = data.taskIdCounter || 1;
+                    closedSlotIdCounter = data.closedSlotIdCounter || 1;
+                    
+                    if (data.config) {
+                        document.getElementById('bufferTime').value = data.config.bufferTime || 15;
+                        document.getElementById('maxTasksPerDay').value = data.config.maxTasksPerDay || 2;
+                        
+                        if (data.config.apiUrl) {
+                            document.getElementById('apiUrl').value = data.config.apiUrl;
+                        }
+                        
+                        if (data.config.dateOption) {
+                            const radioBtn = document.querySelector(`input[name="dateOption"][value="${data.config.dateOption}"]`);
+                            if (radioBtn) {
+                                radioBtn.checked = true;
+                                toggleCustomDate();
+                            }
+                        }
+                        
+                        if (data.config.startDate) {
+                            document.getElementById('startDate').value = data.config.startDate;
+                        }
+                    }
+                    
+                    renderTaskList();
+                    renderClosedSlots();
+                    
+                    const savedAt = data.saved_at ? new Date(data.saved_at).toLocaleString() : 'unknown time';
+                    showStatus('info', `📦 Loaded from browser backup (saved at ${savedAt})`);
+                } catch (e) {
+                    console.error('Error loading from localStorage:', e);
+                    showStatus('warning', 'No saved data found. Starting fresh.');
+                }
+            } else {
+                showStatus('info', 'No saved data found. Configure your schedule below.');
+            }
+        }
+
+        async function saveData() {
+            showStatus('info', 'Saving all data to backend...');
+            
+            const success = await saveToAPI();
+            
+            if (success) {
+                showStatus('success', `✅ All data saved to backend!\n📊 ${tasks.length} tasks, ${closedSlots.length} closed slots`);
+            } else {
+                showStatus('warning', '⚠️ Backend not available. Data saved to browser backup only.');
+            }
+        }
+
+        async function loadData() {
+            showStatus('info', 'Loading data from backend...');
+            
+            if (!apiConnected) {
+                showStatus('warning', 'Backend not connected. Loading from browser backup...');
+                loadFromLocalStorageBackup();
+                return;
+            }
+
+            const loaded = await loadFromAPI(false); // false = show status messages
+            
+            if (!loaded) {
+                showStatus('warning', 'No backend data found. Loading from browser backup...');
+                loadFromLocalStorageBackup();
+            }
+        }
+
+        function clearAll() {
+            if (confirm('Clear all tasks, closed slots, and schedule?')) {
+                tasks = [];
+                closedSlots = [];
+                taskIdCounter = 1;
+                closedSlotIdCounter = 1;
+                
+                renderTaskList();
+                renderClosedSlots();
+                addDefaultClosedSlots();
+                
+                document.getElementById('scheduleOutput').innerHTML = 
+                    '<div class="no-data">Click "Generate Schedule" to see your optimized schedule</div>';
+                
+                // Reset configuration to defaults
+                document.getElementById('bufferTime').value = 15;
+                document.getElementById('maxTasksPerDay').value = 2;
+                document.querySelector('input[name="dateOption"][value="now"]').checked = true;
+                toggleCustomDate();
+                
+                // Clear storage
+                localStorage.removeItem('taskSchedulerData');
+                
+                showStatus('success', 'All data cleared. Default closed slots added.');
+            }
+        }
+    </script>
+</body>
+</html>
