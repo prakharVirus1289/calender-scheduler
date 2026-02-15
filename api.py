@@ -19,10 +19,10 @@ app = Flask(__name__)
 CORS(app)
 
 # Storage directory for user data
-# STORAGE_DIR = Path("scheduler_storage")
-# STORAGE_DIR.mkdir(exist_ok=True)
+STORAGE_DIR = Path("scheduler_storage")
+STORAGE_DIR.mkdir(exist_ok=True)
 
-STORAGE_DIR = "./scheduler_storage"
+# STORAGE_DIR = "./scheduler_storage"
 
 # Static files directory (for serving HTML)
 STATIC_DIR = Path(__file__).parent
@@ -254,8 +254,8 @@ def load_tasks():
     Load saved tasks and configuration
     """
     try:
-        # save_file = STORAGE_DIR / "tasks.json"
-        save_file = 'C:/Users/ASUS/Documents/GitHub/calender-scheduler/scheduler_storage/tasks.json'
+        save_file = STORAGE_DIR / "tasks.json"
+        # save_file = 'C:/Users/ASUS/Documents/GitHub/calender-scheduler/scheduler_storage/tasks.json'
         
         if not save_file.exists():
             return jsonify({
