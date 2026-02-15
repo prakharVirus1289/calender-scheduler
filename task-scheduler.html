@@ -403,7 +403,7 @@
                 </small>
                 <div class="form-group">
                     <label>Backend API URL</label>
-                    <input type="text" id="apiUrl" value="http://localhost:5000/api" placeholder="http://localhost:5000/api">
+                    <input type="text" id="apiUrl" value="https://calender-scheduler-85ht.onrender.com:5000/api" placeholder="http://calender-scheduler-85ht.onrender.com:5000/api">
                 </div>
                 <button class="btn btn-secondary" onclick="checkApiHealth()">Test Connection</button>
                 
@@ -540,12 +540,12 @@
 
         function addDefaultClosedSlots() {
             // Sleep
-            addClosedSlotWithData(0, 0, 8, 0, 'all_days');
-            addClosedSlotWithData(22, 0, 24, 0, 'all_days');
-            // Lunch
-            addClosedSlotWithData(12, 0, 13, 0, 'all_days');
-            // Dinner
-            addClosedSlotWithData(20, 0, 21, 0, 'all_days');
+            // addClosedSlotWithData(0, 0, 8, 0, 'all_days');
+            // addClosedSlotWithData(22, 0, 24, 0, 'all_days');
+            // // Lunch
+            // addClosedSlotWithData(12, 0, 13, 0, 'all_days');
+            // // Dinner
+            // addClosedSlotWithData(20, 0, 21, 0, 'all_days');
         }
 
         function toggleCustomDate() {
@@ -555,7 +555,8 @@
         }
 
         async function checkApiHealth() {
-            const apiUrl = document.getElementById('apiUrl').value;
+            // const apiUrl = document.getElementById('apiUrl').value;
+            const apiUrl = "https://calender-scheduler-85ht.onrender.com/api"
             const statusElement = document.getElementById('apiStatus');
             
             statusElement.textContent = 'Checking...';
