@@ -1,5 +1,26 @@
 {
-  "tasks": [],
+  "tasks": [
+    {
+      "deadline_day": 10,
+      "hours_completed": 0,
+      "hours_per_session": 2,
+      "id": 1,
+      "in_progress": false,
+      "name": "drinking game",
+      "priority": 2,
+      "total_hours": 10
+    },
+    {
+      "id": 2,
+      "name": "drinking game 2",
+      "total_hours": 10,
+      "hours_per_session": 2,
+      "priority": 2,
+      "deadline_day": 10,
+      "hours_completed": 0,
+      "in_progress": false
+    }
+  ],
   "closed_slots": [
     {
       "start_hour": 20,
@@ -9,10 +30,19 @@
       "applies_to": "all_days",
       "specific_date": null,
       "weekdays": []
+    },
+    {
+      "start_hour": 9,
+      "start_minute": 0,
+      "end_hour": 10,
+      "end_minute": 0,
+      "applies_to": "all_days",
+      "specific_date": null,
+      "weekdays": []
     }
   ],
-  "taskIdCounter": 1,
-  "closedSlotIdCounter": 5,
+  "taskIdCounter": 3,
+  "closedSlotIdCounter": 6,
   "config": {
     "buffer_minutes": 15,
     "max_tasks_per_day": 2,
@@ -20,5 +50,5 @@
     "start_date": "2026-02-15",
     "api_url": "http://localhost:5000/api"
   },
-  "saved_at": "2026-02-15T19:15:35.243678"
+  "saved_at": "2026-02-15T19:26:59.911077"
 }

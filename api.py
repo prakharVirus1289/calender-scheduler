@@ -19,8 +19,10 @@ app = Flask(__name__)
 CORS(app)
 
 # Storage directory for user data
-STORAGE_DIR = Path("scheduler_storage")
-STORAGE_DIR.mkdir(exist_ok=True)
+# STORAGE_DIR = Path("scheduler_storage")
+# STORAGE_DIR.mkdir(exist_ok=True)
+
+STORAGE_DIR = "./scheduler_storage"
 
 # Static files directory (for serving HTML)
 STATIC_DIR = Path(__file__).parent
@@ -53,6 +55,9 @@ def serialize_day_schedule(day: DaySchedule) -> Dict[str, Any]:
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
+
+    print("checking ewefwef" , flush=True)
+
     return jsonify({'status': 'healthy', 'message': 'Task Scheduler API is running'})
 
 
@@ -249,7 +254,8 @@ def load_tasks():
     Load saved tasks and configuration
     """
     try:
-        save_file = STORAGE_DIR / "tasks.json"
+        # save_file = STORAGE_DIR / "tasks.json"
+        save_file = 'C:/Users/ASUS/Documents/GitHub/calender-scheduler/scheduler_storage/tasks.json'
         
         if not save_file.exists():
             return jsonify({
@@ -259,8 +265,6 @@ def load_tasks():
         
         with open(save_file, 'r') as f:
             data = json.load(f)
-        
-        print("data ----> ", data);
         
         return jsonify({
             'success': True,
@@ -414,7 +418,7 @@ if __name__ == '__main__':
     print("  GET  /api/load_schedule - Load last schedule")
     print("  POST /api/validate      - Validate tasks")
     print("  GET  /api/example       - Get example payload")
-    print(f"\nStorage directory: {STORAGE_DIR.absolute()}")
+    # print(f"\nStorage directory: {STORAGE_DIR.absolute()}")
     print("\nServer running on http://localhost:5000")
     print("=" * 80)
     print()

@@ -401,20 +401,20 @@
                 <small style="color: #666; display: block; margin-bottom: 15px;">
                     ☁️ All changes auto-save to backend API (browser backup as fallback)
                 </small>
-                <div class="form-group">
+                <!-- <div class="form-group">
                     <label>Backend API URL</label>
                     <input type="text" id="apiUrl" value="https://calender-scheduler-85ht.onrender.com:5000/api" placeholder="http://calender-scheduler-85ht.onrender.com:5000/api">
-                </div>
-                <button class="btn btn-secondary" onclick="checkApiHealth()">Test Connection</button>
+                </div> -->
+                <!-- <button class="btn btn-secondary" onclick="checkApiHealth()">Test Connection</button> -->
                 
                 <div class="form-group" style="margin-top: 25px;">
                     <label>Buffer Between Tasks (minutes)</label>
-                    <input type="number" id="bufferTime" value="15" min="0" max="60">
+                    <input type="number" id="bufferTime" min="0" max="60" placeholder="e.g., 2">
                 </div>
 
                 <div class="form-group">
                     <label>Max Tasks Per Day</label>
-                    <input type="number" id="maxTasksPerDay" value="2" min="1" max="5">
+                    <input type="number" id="maxTasksPerDay" min="1" max="5" placeholder="e.g., 2">
                 </div>
 
                 <div class="form-group">
@@ -464,13 +464,13 @@
 
                 <div class="form-group">
                     <label>Total Hours Needed</label>
-                    <input type="number" id="taskTotalHours" min="0.5" step="0.5" value="10" placeholder="e.g., 10">
+                    <input type="number" id="taskTotalHours" min="0.5" step="0.5" placeholder="e.g., 10">
                     <small style="color: #666;">Total hours to complete the task</small>
                 </div>
 
                 <div class="form-group">
                     <label>Hours Per Session</label>
-                    <input type="number" id="taskHoursPerSession" min="0.5" step="0.5" value="2" placeholder="e.g., 2">
+                    <input type="number" id="taskHoursPerSession" min="0.5" step="0.5" placeholder="e.g., 2">
                     <small style="color: #666;">Hours to work on this task each day</small>
                 </div>
 
@@ -478,14 +478,14 @@
                     <label>Priority</label>
                     <select id="taskPriority">
                         <option value="1">🔴 High</option>
-                        <option value="2" selected>🟡 Medium</option>
+                        <option value="2">🟡 Medium</option>
                         <option value="3">🟢 Low</option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label>Deadline (days from start)</label>
-                    <input type="number" id="taskDeadline" min="1" value="10" placeholder="e.g., 10">
+                    <input type="number" id="taskDeadline" min="1" placeholder="e.g., 10">
                 </div>
 
                 <button class="btn btn-primary" onclick="addTask()">+ Add Task</button>
@@ -527,6 +527,8 @@
         let closedSlotIdCounter = 1;
         let apiConnected = false;
 
+        const apiUrl = "https://calender-scheduler-85ht.onrender.com/api";
+
         // Set today's date as default
         document.getElementById('startDate').valueAsDate = new Date();
 
@@ -555,8 +557,6 @@
         }
 
         async function checkApiHealth() {
-            // const apiUrl = document.getElementById('apiUrl').value;
-            const apiUrl = "https://calender-scheduler-85ht.onrender.com/api"
             const statusElement = document.getElementById('apiStatus');
             
             statusElement.textContent = 'Checking...';
@@ -810,10 +810,9 @@
             generateBtn.textContent = 'Generating...';
             scheduleOutput.innerHTML = '<div class="loading">Generating your schedule</div>';
 
-            const apiUrl = document.getElementById('apiUrl').value;
             const closedSlotsAPI = getClosedSlotsForAPI();
-            const bufferMinutes = parseInt(document.getElementById('bufferTime').value) || 15;
-            const maxTasksPerDay = parseInt(document.getElementById('maxTasksPerDay').value) || 2;
+            const bufferMinutes = parseInt(document.getElementById('bufferTime').value);
+            const maxTasksPerDay = parseInt(document.getElementById('maxTasksPerDay').value);
             
             const dateOption = document.querySelector('input[name="dateOption"]:checked').value;
             const startDate = dateOption === 'now' ? 'now' : document.getElementById('startDate').value;
@@ -903,11 +902,9 @@
         async function saveToAPI() {
             if (!apiConnected) {
                 // If API not available, save to localStorage as fallback
-                saveToLocalStorageBackup();
+                // saveToLocalStorageBackup();
                 return;
             }
-
-            const apiUrl = document.getElementById('apiUrl').value;
             
             const dataToSave = {
                 tasks: tasks,
@@ -915,11 +912,11 @@
                 taskIdCounter: taskIdCounter,
                 closedSlotIdCounter: closedSlotIdCounter,
                 config: {
-                    buffer_minutes: parseInt(document.getElementById('bufferTime').value) || 15,
-                    max_tasks_per_day: parseInt(document.getElementById('maxTasksPerDay').value) || 2,
+                    buffer_minutes: parseInt(document.getElementById('bufferTime').value),
+                    max_tasks_per_day: parseInt(document.getElementById('maxTasksPerDay').value),
                     date_option: document.querySelector('input[name="dateOption"]:checked').value,
                     start_date: document.getElementById('startDate').value,
-                    api_url: document.getElementById('apiUrl').value
+                    api_url: apiUrl
                 },
                 saved_at: new Date().toISOString()
             };
@@ -933,16 +930,16 @@
                 
                 if (response.ok) {
                     // Success - also save to localStorage as backup
-                    saveToLocalStorageBackup();
+                    // saveToLocalStorageBackup();
                     return true;
                 } else {
                     console.error('API save failed, using localStorage');
-                    saveToLocalStorageBackup();
+                    // saveToLocalStorageBackup();
                     return false;
                 }
             } catch (e) {
                 console.error('API save error:', e);
-                saveToLocalStorageBackup();
+                // saveToLocalStorageBackup();
                 return false;
             }
         }
@@ -959,7 +956,7 @@
                     maxTasksPerDay: document.getElementById('maxTasksPerDay').value,
                     dateOption: document.querySelector('input[name="dateOption"]:checked').value,
                     startDate: document.getElementById('startDate').value,
-                    apiUrl: document.getElementById('apiUrl').value
+                    apiUrl: apiUrl
                 },
                 saved_at: new Date().toISOString()
             };
@@ -979,12 +976,11 @@
             }
             
             // Fallback to localStorage if API not available
-            loadFromLocalStorageBackup();
+            // loadFromLocalStorageBackup();
         }
 
         async function loadFromAPI(silent = false) {
             try {
-                const apiUrl = document.getElementById('apiUrl').value;
                 const response = await fetch(`${apiUrl}/load`);
                 
                 if (response.ok) {
@@ -1022,9 +1018,9 @@
                         if (data.config.max_tasks_per_day !== undefined) {
                             document.getElementById('maxTasksPerDay').value = data.config.max_tasks_per_day;
                         }
-                        if (data.config.api_url) {
-                            document.getElementById('apiUrl').value = data.config.api_url;
-                        }
+                        
+                        // document.getElementById('apiUrl').value = apiUrl;
+                        
                         if (data.config.date_option) {
                             const radioBtn = document.querySelector(`input[name="dateOption"][value="${data.config.date_option}"]`);
                             if (radioBtn) {
@@ -1048,7 +1044,7 @@
                     }
                     
                     // Also save to localStorage as backup
-                    saveToLocalStorageBackup();
+                    // saveToLocalStorageBackup();
                     return true;
                 } else {
                     return false;
@@ -1070,12 +1066,12 @@
                     closedSlotIdCounter = data.closedSlotIdCounter || 1;
                     
                     if (data.config) {
-                        document.getElementById('bufferTime').value = data.config.bufferTime || 15;
-                        document.getElementById('maxTasksPerDay').value = data.config.maxTasksPerDay || 2;
+                        document.getElementById('bufferTime').value = data.config.bufferTime;
+                        document.getElementById('maxTasksPerDay').value = data.config.maxTasksPerDay;
                         
-                        if (data.config.apiUrl) {
-                            document.getElementById('apiUrl').value = data.config.apiUrl;
-                        }
+                        
+                        // document.getElementById('apiUrl').value = apiUrl;
+                        
                         
                         if (data.config.dateOption) {
                             const radioBtn = document.querySelector(`input[name="dateOption"][value="${data.config.dateOption}"]`);
@@ -1121,7 +1117,7 @@
             
             if (!apiConnected) {
                 showStatus('warning', 'Backend not connected. Loading from browser backup...');
-                loadFromLocalStorageBackup();
+                // loadFromLocalStorageBackup();
                 return;
             }
 
@@ -1129,7 +1125,7 @@
             
             if (!loaded) {
                 showStatus('warning', 'No backend data found. Loading from browser backup...');
-                loadFromLocalStorageBackup();
+                // loadFromLocalStorageBackup();
             }
         }
 
@@ -1142,19 +1138,19 @@
                 
                 renderTaskList();
                 renderClosedSlots();
-                addDefaultClosedSlots();
+                // addDefaultClosedSlots();
                 
                 document.getElementById('scheduleOutput').innerHTML = 
                     '<div class="no-data">Click "Generate Schedule" to see your optimized schedule</div>';
                 
                 // Reset configuration to defaults
-                document.getElementById('bufferTime').value = 15;
-                document.getElementById('maxTasksPerDay').value = 2;
+                // document.getElementById('bufferTime').value = 15;
+                // document.getElementById('maxTasksPerDay').value = 2;
                 document.querySelector('input[name="dateOption"][value="now"]').checked = true;
                 toggleCustomDate();
                 
                 // Clear storage
-                localStorage.removeItem('taskSchedulerData');
+                // localStorage.removeItem('taskSchedulerData');
                 
                 showStatus('success', 'All data cleared. Default closed slots added.');
             }

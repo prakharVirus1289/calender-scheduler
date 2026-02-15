@@ -9,12 +9,22 @@
       "deadline_day": 10,
       "hours_completed": 0,
       "in_progress": false
+    },
+    {
+      "id": 2,
+      "name": "drinking game 2",
+      "total_hours": 10,
+      "hours_per_session": 2,
+      "priority": 2,
+      "deadline_day": 10,
+      "hours_completed": 0,
+      "in_progress": false
     }
   ],
   "schedule": [
     {
       "day_number": 1,
-      "date": "2026-02-16",
+      "date": "2026-02-15",
       "scheduled_tasks": [
         {
           "task_name": "drinking game",
@@ -24,13 +34,22 @@
           "priority": 2,
           "progress": "2.0h / 10.0h",
           "task_id": 1
+        },
+        {
+          "task_name": "drinking game 2",
+          "start_time": "02:15",
+          "end_time": "04:15",
+          "duration_hours": 2,
+          "priority": 2,
+          "progress": "2.0h / 10.0h",
+          "task_id": 2
         }
       ],
       "warnings": []
     },
     {
       "day_number": 2,
-      "date": "2026-02-17",
+      "date": "2026-02-16",
       "scheduled_tasks": [
         {
           "task_name": "drinking game",
@@ -40,13 +59,22 @@
           "priority": 2,
           "progress": "4.0h / 10.0h",
           "task_id": 1
+        },
+        {
+          "task_name": "drinking game 2",
+          "start_time": "02:15",
+          "end_time": "04:15",
+          "duration_hours": 2,
+          "priority": 2,
+          "progress": "4.0h / 10.0h",
+          "task_id": 2
         }
       ],
       "warnings": []
     },
     {
       "day_number": 3,
-      "date": "2026-02-18",
+      "date": "2026-02-17",
       "scheduled_tasks": [
         {
           "task_name": "drinking game",
@@ -56,13 +84,22 @@
           "priority": 2,
           "progress": "6.0h / 10.0h",
           "task_id": 1
+        },
+        {
+          "task_name": "drinking game 2",
+          "start_time": "02:15",
+          "end_time": "04:15",
+          "duration_hours": 2,
+          "priority": 2,
+          "progress": "6.0h / 10.0h",
+          "task_id": 2
         }
       ],
       "warnings": []
     },
     {
       "day_number": 4,
-      "date": "2026-02-19",
+      "date": "2026-02-18",
       "scheduled_tasks": [
         {
           "task_name": "drinking game",
@@ -72,13 +109,22 @@
           "priority": 2,
           "progress": "8.0h / 10.0h",
           "task_id": 1
+        },
+        {
+          "task_name": "drinking game 2",
+          "start_time": "02:15",
+          "end_time": "04:15",
+          "duration_hours": 2,
+          "priority": 2,
+          "progress": "8.0h / 10.0h",
+          "task_id": 2
         }
       ],
       "warnings": []
     },
     {
       "day_number": 5,
-      "date": "2026-02-20",
+      "date": "2026-02-19",
       "scheduled_tasks": [
         {
           "task_name": "drinking game",
@@ -88,6 +134,15 @@
           "priority": 2,
           "progress": "10.0h / 10.0h",
           "task_id": 1
+        },
+        {
+          "task_name": "drinking game 2",
+          "start_time": "02:15",
+          "end_time": "04:15",
+          "duration_hours": 2,
+          "priority": 2,
+          "progress": "10.0h / 10.0h",
+          "task_id": 2
         }
       ],
       "warnings": []
@@ -96,7 +151,7 @@
   "config": {
     "buffer_minutes": 15,
     "max_tasks_per_day": 2,
-    "start_date": "2026-02-16"
+    "start_date": "2026-02-15"
   },
-  "saved_at": "2026-02-16T00:01:36.944815"
+  "saved_at": "2026-02-15T20:26:28.844826"
 }
